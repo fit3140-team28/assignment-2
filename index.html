@@ -5,17 +5,32 @@ body{
 	background-color:darkkhaki;
 }
 h1{
+	margin-top: 2vw;
 	text-align: center;
 }
-
+#container{
+	width: auto;
+	margin: auto;
+}
 #chatbox{
 	border: 2px solid black;
-	padding: 10px;
-	margin-left: 2vw;
-	height: 300px;
 	width: 200px;
+	height: 300px;
+	float: left;
+	padding: 10px;
+	margin-left: 20vw;
+	margin-top: 4vw;
 	text-align: center;
 	padding-bottom: 30px;
+}
+
+#stats{
+	border: 2px solid black;
+	float: right;
+	margin-right: 30vw;
+	margin-top: 10vw;
+	padding: 10px;
+	padding-right: 100px;
 }
 
 .onoff{
@@ -28,18 +43,67 @@ h1{
 </style>
 </head>
 <title>Traffic Analyser App!</title>
+<script src = "https://www.gstatic.com/firebasejs/4.12.1/firebase.js"></script>
+<script>
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyD9zBmqexKdJO0hFetXD9IEqSncn7tlEWQ",
+    authDomain: "assignment02-6b825.firebaseapp.com",
+    databaseURL: "https://assignment02-6b825.firebaseio.com",
+    projectId: "assignment02-6b825",
+    storageBucket: "assignment02-6b825.appspot.com",
+    messagingSenderId: "902464848076"
+  };
+  firebase.initializeApp(config);
+</script>
 <meta name = "viewport" content = "width=device-width, intial-scale = 1.0">
 <body>
 
 <h1>Traffic Analyser App!</h1>
-<div id = 'chatbox'>
-<h3>Control Panel</h3>
-<p>Light Switch:Off</p>
-<button class = 'onoff'>On</button><button class = 'onoff'>Off</button></br>
-<p>Sensor:Off</p>
-<button class = 'onoff'>On</button><button class = 'onoff'>Off</button></br>
-<button id = reset>Reset Database</button>
+<div id= 'container'></div>
+	<div id = 'chatbox'>
+	<h3>Control Panel</h3>
+
+	<p id = 'light_text'>Light Switch : Off</p>
+	<button id = 'light_on', class = 'onoff', onclick = "light_pressed('On')">On</button>
+	<button id = 'light_off', class = 'onoff', onclick = "light_pressed('Off')" disabled>Off</button></br>
+
+	<p id = 'sensor_text'>Sensor : Off</p>
+	<button id = 'sensor_on', class = 'onoff', onclick = "sensor_pressed('On')">On</button>
+	<button id = 'sensor_off', class = 'onoff', onclick = "sensor_pressed('Off')" disabled>Off</button></br>
+
+	<button id = reset>Reset Database</button>
+	</div>
+	<div id = 'stats'>
+		<p>Long Motions:</p>
+		<p>Short Motions:</p>
+		<p>People:</p>
+	</div>
 </div>
 
+
 </body>
+<script>
+function light_pressed(x){
+	document.getElementById("light_text").innerHTML = 'Light Switch : ' + x;
+	if(x == 'On'){
+		document.getElementById('light_on').disabled = true;
+		document.getElementById('light_off').disabled = false;
+	} else{
+		document.getElementById('light_off').disabled = true;
+		document.getElementById('light_on').disabled = false;
+	}
+}
+
+function sensor_pressed(x){
+	document.getElementById("sensor_text").innerHTML = 'Sensor : ' + x;
+	if(x == 'On'){
+		document.getElementById('sensor_on').disabled = true;
+		document.getElementById('sensor_off').disabled = false;
+	} else{
+		document.getElementById('sensor_off').disabled = true;
+		document.getElementById('sensor_on').disabled = false;
+	}
+}
+</script>
 </html>

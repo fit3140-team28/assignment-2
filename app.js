@@ -1,6 +1,17 @@
 var five = require("johnny-five");
 var board = new five.Board();
+var admin = require("firebase-admin");
 
+var serviceAccount = require("./serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://assignment02-6b825.firebaseio.com"
+});
+
+var db = admin.database();
+//var ref = db.ref("motions");
+var ref = firebase.database().ref("/motions");
 
 board.on("ready", function(){
 	var led = new five.Led(13);
