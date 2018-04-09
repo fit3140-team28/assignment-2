@@ -37,6 +37,7 @@ h1{
 	margin-left: 5px;
 	margin-right: 5px;
 }
+
 #reset {
 	margin-top: 30px;
 }
@@ -44,6 +45,8 @@ h1{
 </head>
 <title>Traffic Analyser App!</title>
 <script src = "https://www.gstatic.com/firebasejs/4.12.1/firebase.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<!--<script src = "./app.js"></script>-->
 <script>
   // Initialize Firebase
   var config = {
@@ -70,21 +73,40 @@ h1{
 
 	<p id = 'sensor_text'>Sensor : Off</p>
 	<button id = 'sensor_on', class = 'onoff', onclick = "sensor_pressed('On')">On</button>
-	<button id = 'sensor_off', class = 'onoff', onclick = "sensor_pressed('Off')" disabled>Off</button></br>
-
-	<button id = reset>Reset Database</button>
+	<button id = 'sensor_off', class = 'onoff', onclick = "sensor_pressed('Off')" disabled>Off</button>
+</br>
+</br>
+	<button id = reset, onclick = "reset_database()">Reset Database</button>
 	</div>
 	<div id = 'stats'>
-		<p>Long Motions:</p>
-		<p>Short Motions:</p>
-		<p>People:</p>
+		<p id = 'long_stat'>Long Motions:</p>
+		<p id = 'short_stat'>Short Motions:</p>
+		<p id = 'people_stat'>People:</p>
 	</div>
 </div>
 
 
 </body>
 <script>
-function light_pressed(x){
+var socket = io();
+
+socket.on('connect', function(){
+	socket.emit('count');
+});
+
+socket.on('return_count', function(data){
+	var y = 'Long Motions: ';
+	document.getElementById('long_stat').innerText = y + data[0];
+	var x = 'Short Motions: ';
+	document.getElementById('short_stat').innerText = x + data[1];
+});
+
+function reset_database(){
+	socket.emit('read');
+}
+
+
+function light_pressed(x){	
 	document.getElementById("light_text").innerHTML = 'Light Switch : ' + x;
 	if(x == 'On'){
 		document.getElementById('light_on').disabled = true;
@@ -100,10 +122,13 @@ function sensor_pressed(x){
 	if(x == 'On'){
 		document.getElementById('sensor_on').disabled = true;
 		document.getElementById('sensor_off').disabled = false;
+		socket.emit('sensor_on');
 	} else{
 		document.getElementById('sensor_off').disabled = true;
 		document.getElementById('sensor_on').disabled = false;
+		socket.emit('sensor_off');
 	}
 }
+
 </script>
 </html>
