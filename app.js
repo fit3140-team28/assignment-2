@@ -8,6 +8,13 @@ var five = require("johnny-five");
 var board = new five.Board();
 var admin = require("firebase-admin");
 var sensor = false;
+var motion_length = 0;
+var counter = 0;
+var sequence = [];
+var light = 'off';
+var extra_people = 0;
+var light_switch = false;
+
 
 
 
@@ -27,31 +34,67 @@ admin.initializeApp({
 });
 
 
-check_person(function(sequence){
-	console.log(sequence);
-});
 
-function check_person (callback){
-	var motionRef = admin.database().ref("motions").limitToLast(4);
-	var sequence = [];	
-	motionRef.on("child_added", function(snapshot){
-		sequence.push(snapshot.val().type);
-		callback(sequence);
-	});
-	console.log(sequence);
-	//motionRef.on("value", function(snapshot){
-		//console.log(snapshot.val());
-	//});
-};
+function push_motion(){
+	if(motion_length > 8000){
+			ref.push({
+				type: "long",
+				duration: motion_length,
+				sequence: null,
+				classification: null
+			});
+		} else if (motion_length < 8000){
+			ref.push({
+				type:"short",
+				duration: motion_length,
+				sequence: null,
+				classification: null
+			});
+		}	
+	recount();
+	var motionRef = admin.database().ref("motions").limitToLast(4);	
+	sequence = [];
+	counter = 0;	
+	motionRef.on("child_added", show_msg)
+}
 
-/*function check_person(){
-	var sequence = [];
-	var motionRef = admin.database().ref().limitToLast(4);
-	motionRef.once('value', snap => {
-		snap.forEach(item => {sequence.push(item)});
-		console.log(sequence);
-	});
-}*/
+function show_msg(data){
+	var msg = data.val();
+	sequence.push(msg.type);
+	counter ++;
+	if (counter == 4){
+		find_person(sequence);
+	}
+}
+
+function find_person(x){
+	if (x.length == 4){	
+		var thing = is_person(x);
+		var person = convert_thing(thing);
+		update_person(x, person);
+	}
+}
+
+
+function convert_thing(x){
+	if (x == true){
+		return ('person');
+	} else if (x == false){
+		return ('other');
+	};
+}
+
+function is_person(array){
+	if (array[0] == 'long' && array[2] == 'long' && array[3] == 'long'){
+		if (array[1] == 'short'){
+			return true;
+		} else {
+			return false;		
+		}
+	} else{
+	return false;
+	}
+}
 
 
 
@@ -65,7 +108,6 @@ function count_long(){
 	ref.orderByChild('type').equalTo('long').on('child_added', function(snapshot){
 		count++;
 	});
-	console.log('count long = ' + count);
 	return count;
 }
 
@@ -75,49 +117,43 @@ function count_short(){
 	ref.orderByChild('type').equalTo('short').on('child_added', function(snapshot){
 		count++;
 	});
-	console.log('count short = ' + count);
+	return count;
+}
+
+function count_people(){
+	var count = 0;
+	var pRef = admin.database().ref("motions");
+	pRef.orderByChild('classification').equalTo('person').on('child_added', function(snapshot){
+		count++;
+	});
 	return count;
 }
 
 
 
-io.on("connection", function(client){
-	client.on('read', function(){
-		ref.remove();	
-		console.log('Database Cleared!');
-	});
-	client.on('sensor_on', function(){
-		sensor = true;
-		console.log('Sensor On!');
-	});
-	client.on('sensor_off', function(){
-		sensor = false;
-		console.log('Sensor Off!');
-	});
-	client.on('count', function(){
-		var long = count_long();
-		var short = count_short();
-		var total = [long, short]
-		client.emit('return_count', total);
-	});
-});
+function recount(){
+	var long = count_long();
+	var short = count_short();
+	var no_people = count_people();
+	var total = [long, short, no_people];
+	io.emit('return_count', total);
+}
 
-
+function somebody(){
+	io.emit('somebody');
+}
 
 board.on("ready", function(){
 	var led = new five.Led(13);
-	led.blink(500);
 	var motion = new five.Motion(7);
 	var motion_start;
 	var motion_end;	
-	var motion_length;
 	motion.on("calibrated", function(){
 			console.log("calibrated");
 		});
 	motion.on("motionstart", function(){
 	if (sensor == true){		
 		console.log("motionstart");
-		led.blink(100);
 		var d = new Date();		
 		motion_start = d.getTime();
 		}
@@ -125,26 +161,104 @@ board.on("ready", function(){
 	motion.on("motionend", function(){
 	if (sensor == true){
 		console.log("motionend");
-		led.blink(500);
 		var d = new Date();
 		motion_end = d.getTime();
 		motion_length = motion_end - motion_start;
 		console.log("motion length = " + motion_length + "ms/ " + motion_length/1000 + "s \n");
-		if(motion_length > 8000){
-			ref.push({
-				type: "long",
-				duration: motion_length
-			});
-		} else if (motion_length < 8000){
-			ref.push({
-				type:"short",
-				duration: motion_length
-			});
-		}
+		push_motion();	
 	}
+	});
+	
+	io.on("connection", function(client){
+		client.on('reset', function(){
+			ref.remove();
+			ref.off();	
+			var long = count_long();
+			var short = count_short();
+			var no_people = count_people();
+			var total = [long, short, no_people];
+			io.emit('return_count', total);
+			console.log('Database Cleared!');
+		});
+		client.on('sensor_on', function(){
+			sensor = true;
+			console.log('Sensor On!');
+		});
+		client.on('sensor_off', function(){
+			sensor = false;
+			console.log('Sensor Off!');
+		});
+		client.on('light_switch_on', function(){
+			light_switch = true;
+			console.log('Light Switch On!');
+		});
+		client.on('light_switch_off', function(){
+			light_switch = false;
+			console.log('Light Switch Off!');
+		});
+		client.on('count', function(){
+			var long = count_long();
+			var short = count_short();
+			var no_people = count_people();
+			var total = [long, short, no_people];
+			io.emit('return_count', total);
+		});
+		recount();
+		somebody();
+		client.on('person_detected', function(){						 
+			if (light_switch == true){			
+				if (light == 'off'){
+					light = 'on';				
+					led.on();
+					console.log('Person detected - light on for 15 seconds!');
+					setTimeout(
+						function light_off(){
+							led.off();
+							light = 'off';
+							if (extra_people != 0){
+								var i = 0;
+								light = 'on';
+								led.on();
+								console.log('Start of extra time!');
+								var interval = setInterval(function(){
+									i++;
+									if (i == extra_people){
+										extra_people = 0;
+										led.off();
+										light = 'off';
+										console.log('Everyone through, lights off!');	
+										clearInterval(interval);
+									}
+									console.log('End of extra time for additional person ' + i);									
+								}, 5000);
+							}
+						}, 15000);
+				}	else{
+					extra_people += 1;
+					console.log('Another person detected! Light on for additional 5 seconds!');
+				}
+			}
+		});
 	});
 });
 
+
+
+function update_person(sequence, thing){
+	var motionRef = admin.database().ref("motions").limitToLast(1);
+	if (thing == 'person'){
+		somebody();
+		recount();
+	}	
+	motionRef.on("child_added", function(data){
+		var key = data.key;
+		latestRef = admin.database().ref("motions/" + key);
+		latestRef.update({
+			"sequence": sequence,
+			"classification": thing
+		})
+	});
+}
 
 
 
