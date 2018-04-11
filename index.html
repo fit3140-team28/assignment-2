@@ -15,7 +15,7 @@ h1{
 #chatbox{
 	border: 2px solid black;
 	width: 200px;
-	height: 300px;
+	height: 310px;
 	float: left;
 	padding: 10px;
 	margin-left: 20vw;
@@ -39,6 +39,10 @@ h1{
 }
 
 #reset {
+	margin-top: 30px;
+}
+
+#virtual {
 	margin-top: 30px;
 }
 </style>
@@ -75,8 +79,9 @@ h1{
 	<button id = 'sensor_on', class = 'onoff', onclick = "sensor_pressed('On')">On</button>
 	<button id = 'sensor_off', class = 'onoff', onclick = "sensor_pressed('Off')" disabled>Off</button>
 </br>
+	<button id = 'reset', onclick = "reset_database()">Reset Database</button>
 </br>
-	<button id = reset, onclick = "reset_database()">Reset Database</button>
+	<button id = 'virtual', onclick = "virtual_person()">Person Simulation</button>
 	</div>
 	<div id = 'stats'>
 		<p id = 'long_stat'>Long Motions:</p>
@@ -89,8 +94,14 @@ h1{
 </body>
 <script>
 var socket = io();
+var c_people = 0;
 
 socket.on('connect', function(){
+	socket.emit('count');
+});
+
+socket.on('somebody', function(){
+	socket.emit('person_detected');
 	socket.emit('count');
 });
 
@@ -99,10 +110,19 @@ socket.on('return_count', function(data){
 	document.getElementById('long_stat').innerText = y + data[0];
 	var x = 'Short Motions: ';
 	document.getElementById('short_stat').innerText = x + data[1];
+	var z = 'People: ';
+	document.getElementById('people_stat').innerText = z + data[2];
 });
 
+
+function virtual_person(){
+	socket.emit('person_detected');
+}
+
+
 function reset_database(){
-	socket.emit('read');
+	c_people = 0;
+	socket.emit('reset');
 }
 
 
@@ -111,9 +131,11 @@ function light_pressed(x){
 	if(x == 'On'){
 		document.getElementById('light_on').disabled = true;
 		document.getElementById('light_off').disabled = false;
+		socket.emit('light_switch_on');
 	} else{
 		document.getElementById('light_off').disabled = true;
 		document.getElementById('light_on').disabled = false;
+		socket.emit('light_switch_off');
 	}
 }
 
