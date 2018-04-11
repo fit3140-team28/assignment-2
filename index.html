@@ -50,7 +50,6 @@ h1{
 <title>Traffic Analyser App!</title>
 <script src = "https://www.gstatic.com/firebasejs/4.12.1/firebase.js"></script>
 <script src="/socket.io/socket.io.js"></script>
-<!--<script src = "./app.js"></script>-->
 <script>
   // Initialize Firebase
   var config = {
@@ -93,18 +92,21 @@ h1{
 
 </body>
 <script>
+//initialise websocket
 var socket = io();
-var c_people = 0;
 
+//when webpage connects, immediately update the totals from the database
 socket.on('connect', function(){
 	socket.emit('count');
 });
 
+//when a person is detected, tell the server to turn on the light
 socket.on('somebody', function(){
 	socket.emit('person_detected');
 	socket.emit('count');
 });
 
+//update the text on the webpage with the totals from the database
 socket.on('return_count', function(data){
 	var y = 'Long Motions: ';
 	document.getElementById('long_stat').innerText = y + data[0];
@@ -115,17 +117,17 @@ socket.on('return_count', function(data){
 });
 
 
+//test function for the light
 function virtual_person(){
 	socket.emit('person_detected');
 }
 
-
+//tell the server to clear the database
 function reset_database(){
-	c_people = 0;
 	socket.emit('reset');
 }
 
-
+//when the light button is turned on, tell server to enable the light function (and vice versa)
 function light_pressed(x){	
 	document.getElementById("light_text").innerHTML = 'Light Switch : ' + x;
 	if(x == 'On'){
@@ -139,6 +141,7 @@ function light_pressed(x){
 	}
 }
 
+//when the sensor button is turned on, tell sever to enable the motion sensor (and vice versa)
 function sensor_pressed(x){
 	document.getElementById("sensor_text").innerHTML = 'Sensor : ' + x;
 	if(x == 'On'){
